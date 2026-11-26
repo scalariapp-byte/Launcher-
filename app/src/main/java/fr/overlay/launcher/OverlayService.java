@@ -98,9 +98,15 @@ public class OverlayService extends AccessibilityService {
     private void addGestureZones() {
         int edge = view == null ? dp(14) : view.dp(14);
         bottom = zone(Zone.BOTTOM); left = zone(Zone.LEFT); right = zone(Zone.RIGHT);
-        wm.addView(bottom, params(-1, dp(22), Gravity.BOTTOM));
-        wm.addView(left, params(edge, -1, Gravity.START));
-        wm.addView(right, params(edge, -1, Gravity.END));
+        // Les overlays d'accessibilité passent au-dessus de la barre de navigation :
+        // on place les zones au-dessus d'elle pour ne pas bloquer ses boutons.
+        int nav = buttonNavBar();
+        int h = getResources().getDisplayMetrics().heightPixels - nav;
+        WindowManager.LayoutParams b = params(-1, dp(22), Gravity.BOTTOM);
+        b.y = nav;
+        wm.addView(bottom, b);
+        wm.addView(left, params(edge, h, Gravity.TOP | Gravity.START));
+        wm.addView(right, params(edge, h, Gravity.TOP | Gravity.END));
         gestures = true;
     }
 
@@ -159,6 +165,14 @@ public class OverlayService extends AccessibilityService {
                 PixelFormat.TRANSLUCENT);
         lp.gravity = gravity;
         return lp;
+    }
+
+    /** Hauteur de la barre à boutons si elle est affichée, sinon 0. */
+    private int buttonNavBar() {
+        int mode = getResources().getIdentifier("config_navBarInteractionMode", "integer", "android");
+        if (mode > 0 && getResources().getInteger(mode) == 2) return 0;
+        int id = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        return id > 0 ? getResources().getDimensionPixelSize(id) : dp(48);
     }
 
     private int gestureBar() {
