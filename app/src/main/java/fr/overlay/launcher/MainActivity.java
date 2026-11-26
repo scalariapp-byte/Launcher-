@@ -25,6 +25,8 @@ public class MainActivity extends Activity {
                 () -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
         l.addView(button("2. Choisir un fond d'écran", () ->
                 startActivityForResult(new Intent(Intent.ACTION_GET_CONTENT).setType("image/*"), 1)));
+        l.addView(button("3. (Option) En faire le lanceur par défaut — gestes recréés",
+                () -> startActivity(new Intent(Settings.ACTION_HOME_SETTINGS))));
         l.addView(button("Retirer le fond d'écran", () -> {
             deleteFile(WALL);
             Toast.makeText(this, "Fond retiré", Toast.LENGTH_SHORT).show();
