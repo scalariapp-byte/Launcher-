@@ -220,11 +220,14 @@ public class OverlayService extends AccessibilityService {
         if (shown) return;
         loadWallpaper();
         reloadApps();
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(-1, -1,
+        // On laisse libre la bande du bas : c'est là que MIUI capte ses gestes.
+        int h = getResources().getDisplayMetrics().heightPixels + statusBar() - gestureBar();
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(-1, h,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP;
         if (android.os.Build.VERSION.SDK_INT >= 28)
             lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         lp.windowAnimations = android.R.style.Animation_Toast;
@@ -305,6 +308,11 @@ public class OverlayService extends AccessibilityService {
     private int statusBar() {
         int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
         return id > 0 ? getResources().getDimensionPixelSize(id) : dp(32);
+    }
+
+    private int gestureBar() {
+        int id = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        return Math.max(id > 0 ? getResources().getDimensionPixelSize(id) : 0, dp(24));
     }
 
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
