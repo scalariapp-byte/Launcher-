@@ -253,7 +253,7 @@ public class OverlayService extends AccessibilityService {
         Set<String> s = new HashSet<>(prefs.getStringSet("favs", new HashSet<>()));
         boolean add = !s.remove(a.key());
         if (add) {
-            if (s.size() >= 8) { Toast.makeText(this, "8 favoris maximum", Toast.LENGTH_SHORT).show(); return; }
+            if (s.size() >= 4) { Toast.makeText(this, "4 favoris maximum", Toast.LENGTH_SHORT).show(); return; }
             s.add(a.key());
         }
         prefs.edit().putStringSet("favs", s).apply();
