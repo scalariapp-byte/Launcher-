@@ -6,13 +6,13 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.TextView;
@@ -45,27 +45,49 @@ public class OverlayService extends AccessibilityService {
         grid = buildGrid();
     }
 
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable check = this::evaluate;
+
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
         if (e.getPackageName() == null) return;
         String pkg = e.getPackageName().toString();
         if (pkg.equals(getPackageName()) || pkg.equals("com.android.systemui")) return;
-        String cls = e.getClassName() == null ? "" : e.getClassName().toString().toLowerCase();
-        if (pkg.equals(homePkg) && !cls.contains("recent")) show(); else hide();
+        if (!pkg.equals(homePkg)) { handler.removeCallbacks(check); hide(); return; }
+        handler.removeCallbacks(check);
+        handler.postDelayed(check, 200);
     }
 
-    @Override public void onInterrupt() { hide(); }
+    /** Affiche le tiroir seulement sur l'accueil, pas sur les récents ni le tiroir MIUI. */
+    private void evaluate() {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null || root.getPackageName() == null
+                || !root.getPackageName().toString().equals(homePkg)) { hide(); return; }
+        if (hasId(root, 0)) hide(); else show();
+    }
+
+    private boolean hasId(AccessibilityNodeInfo n, int depth) {
+        if (n == null || depth > 12) return false;
+        String id = n.getViewIdResourceName();
+        if (id != null && n.isVisibleToUser()) {
+            id = id.toLowerCase();
+            if (id.contains("recent") || id.contains("clear") || id.contains("task")) return true;
+        }
+        for (int i = 0; i < n.getChildCount(); i++) if (hasId(n.getChild(i), depth + 1)) return true;
+        return false;
+    }
+
+    @Override public void onInterrupt() { handler.removeCallbacks(check); hide(); }
 
     private GridView buildGrid() {
         GridView g = new GridView(this);
         g.setNumColumns(4);
         g.setVerticalSpacing(dp(20));
-        g.setPadding(dp(12), dp(64), dp(12), dp(48));
+        g.setPadding(dp(12), statusBar() + dp(24), dp(12), dp(48));
         g.setClipToPadding(false);
         g.setVerticalScrollBarEnabled(false);
         g.setOverScrollMode(View.OVER_SCROLL_NEVER);
         g.setSelector(android.R.color.transparent);
-        g.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xB0000000, 0xE0000000}));
+        g.setBackgroundColor(0xFF101014);
         g.setOnItemClickListener((p, v, i, id) -> {
             App a = apps.get(i);
             hide();
@@ -131,6 +153,11 @@ public class OverlayService extends AccessibilityService {
         }
         apps.sort((a, b) -> a.label.compareToIgnoreCase(b.label));
         ((BaseAdapter) grid.getAdapter()).notifyDataSetChanged();
+    }
+
+    private int statusBar() {
+        int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        return id > 0 ? getResources().getDimensionPixelSize(id) : dp(32);
     }
 
     private int dp(int v) {

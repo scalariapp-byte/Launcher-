@@ -20,7 +20,7 @@ jobs:
         with: { name: apk, path: OverlayLauncher.apk }
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0
-          name: Overlay Launcher 1.0
+          tag_name: v1.1
+          name: Overlay Launcher 1.1
           target_commitish: ${{ github.sha }}
           files: OverlayLauncher.apk
